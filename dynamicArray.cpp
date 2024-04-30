@@ -1,65 +1,46 @@
-#include "dynamicArray.hpp"
+#include "dynamicArray.h"
 
-dynamicArray::dynamicArray(int capacity) : dynamicArrayCapacity(capacity), dynamicArrayPtr(new int[capacity]) {
-    //konstruktor z argumentem rozmiaru tablicy, pointer wskazuje na początek tej tablicy
-    for (int i = 0; i < dynamicArrayCapacity; i++) {
-        dynamicArrayPtr[i] = 0;
+dynamicArray::dynamicArray(int capacity) : dynamicArrayCapacity(capacity), dynamicArrayPtr(new Element[capacity]), dynamicArraySize(0) {
+    for(int i = 0; i < dynamicArrayCapacity; i++) {
+        dynamicArrayPtr[i].value = 0;
+        dynamicArrayPtr[i].priority = 0;
     }
 }
-dynamicArray::dynamicArray() : dynamicArraySize(0), dynamicArrayCapacity(0), dynamicArrayPtr(new int[0])
-{
-    //konstruktor domyślny
-}
+
+dynamicArray::dynamicArray() : dynamicArraySize(0), dynamicArrayCapacity(0), dynamicArrayPtr(new Element[0]) {}
+
 dynamicArray::~dynamicArray() {
-    if (dynamicArrayPtr == nullptr) return;
-    free(dynamicArrayPtr);
+    delete[] dynamicArrayPtr;
     dynamicArrayCapacity = 0;
     dynamicArraySize = 0;
     dynamicArrayPtr = nullptr;
 }
 
 void dynamicArray::increaseCapacity() {
-    // Sprawdzamy, czy tablica ma wystarczającą pojemność
     if (dynamicArraySize == dynamicArrayCapacity) {
-
-        // Tworzymy nowy bufor o zwiększonej pojemności
-        int* buffer = new int[dynamicArrayCapacity * 2];
-
-        // Kopiujemy istniejące elementy do nowego bufora
-        for (int i = 0; i < dynamicArraySize + 1; i++) {
-            buffer[i] = dynamicArrayPtr[i];
+        int newCapacity = dynamicArrayCapacity * 2;
+        Element* newPtr = new Element[newCapacity];
+        for (int i = 0; i < dynamicArraySize; ++i) {
+            newPtr[i] = dynamicArrayPtr[i];
         }
-
-        // Usuwamy stary bufor
         delete[] dynamicArrayPtr;
-
-        // Przypisujemy nowy bufor do dynamicArrayPtr
-        dynamicArrayPtr = buffer;
-        dynamicArrayCapacity *= 2;
+        dynamicArrayPtr = newPtr;
+        dynamicArrayCapacity = newCapacity;
     }
 }
 
 void dynamicArray::decreaseCapacity() {
-    // Sprawdzamy, czy liczba elementów w tablicy spadła poniżej połowy jej aktualnej pojemności
-    if (dynamicArraySize == (dynamicArrayCapacity / 2)) {
-
-        // Tworzymy nowy bufor o zmniejszonej pojemności
-        int* buffer = new int[dynamicArrayCapacity / 2];
-
-        // Kopiujemy istniejące elementy do nowego bufora
-        for (int i = 0; i < dynamicArraySize + 1; ++i) {
-            buffer[i] = dynamicArrayPtr[i];
+    if (dynamicArraySize < dynamicArrayCapacity / 4) {
+        int newCapacity = dynamicArrayCapacity / 2;
+        Element* newPtr = new Element[newCapacity];
+        for (int i = 0; i < dynamicArraySize; ++i) {
+            newPtr[i] = dynamicArrayPtr[i];
         }
-
-        // Usuwamy stary bufor
         delete[] dynamicArrayPtr;
-
-        // Przypisujemy nowy bufor do dynamicArrayPtr
-        dynamicArrayPtr = buffer;
-        dynamicArrayCapacity /= 2;
+        dynamicArrayPtr = newPtr;
+        dynamicArrayCapacity = newCapacity;
     }
 }
-
 
 int dynamicArray::getDynamicArraySize() const {
     return dynamicArraySize;
@@ -69,73 +50,47 @@ bool dynamicArray::isDynamicArrayEmpty() {
     return dynamicArraySize == 0;
 }
 
-int dynamicArray::getDynamicArrayElementAt(int index) {
+Element dynamicArray::getDynamicArrayElementAt(int index) const{
     if (index < 0 || index >= dynamicArraySize) {
-        cout << "Błąd: Indeks poza zakresem!" << endl;
+        std::cerr << "Błąd: Indeks poza zakresem!" << std::endl;
         exit(EXIT_FAILURE);
     }
     return dynamicArrayPtr[index];
 }
 
-int dynamicArray::findElement(int element) {
-    for (int i = 0; i < dynamicArraySize; i++) {
-        if (dynamicArrayPtr[i] == element) {
-            return i;
-        }
-    }
-    return -1;
-}
-
-void dynamicArray::displayDynamicArrayWCapacity() {
-    for (int i = 1; i < dynamicArrayCapacity + 1; i++) {
-        cout << dynamicArrayPtr[i] << "\t"; // Wyświetlamy wartość na pozycji i
-    }
-    cout << endl;
-}
-
-void dynamicArray::displayDynamicArray() {  //wyswietlenie tablicy
-    // Przechodzimy przez tablicę i wyświetlamy jej zawartość
-    for (int i = 1; i < dynamicArraySize + 1; i++) {
-        cout << dynamicArrayPtr[i] << "\t"; // Wyświetlamy wartość na pozycji i
-    }
-    cout << endl;
-}
-
-void dynamicArray::addBack(int element) { // dodaje element w koniec tablicy
+void dynamicArray::addBack(Element element) {
     increaseCapacity();
-    dynamicArraySize++;
     dynamicArrayPtr[dynamicArraySize] = element;
+    dynamicArraySize++;
 }
 
-void dynamicArray::add(int index, int element) {
+void dynamicArray::add(int index, Element element) {
     if (index < 0) {
-        cout << "Błąd: Niepoprawny indeks!" << endl;
+        std::cerr << "Błąd: Niepoprawny indeks!" << std::endl;
         return;
     }
 
-    if (index < dynamicArraySize) {
+    if(index < dynamicArraySize) {
         increaseCapacity();
-        dynamicArraySize++;
         for (int i = dynamicArraySize; i > index; i--) {
-            dynamicArrayPtr[i + 1] = dynamicArrayPtr[i];
+            dynamicArrayPtr[i] = dynamicArrayPtr[i-1];
         }
-        dynamicArrayPtr[index + 1] = element;
-    }
-    else {
-        //gdy index jest większy niż size, wstaw nowy element na pierwszą wolną pozycję
+        dynamicArrayPtr[index] = element;
+        dynamicArraySize++;
+    } else {
         increaseCapacity();
-        addBack(element);
+        dynamicArrayPtr[dynamicArraySize] = element;
+        dynamicArraySize++;
     }
 }
 
 void dynamicArray::remove(int index) {
-    if (index < 0 || index > dynamicArraySize) {
-        cout << "Błąd: Niepoprawny indeks!" << endl;
+    if (index < 0 || index >= dynamicArraySize) {
+        std::cerr << "Błąd: Niepoprawny indeks!" << std::endl;
         return;
     }
 
-    // Usuwamy element na podanym indeksie
-    for (int i = index + 1; i < dynamicArraySize; ++i) {
+    for (int i = index; i < dynamicArraySize - 1; ++i) {
         dynamicArrayPtr[i] = dynamicArrayPtr[i + 1];
     }
     dynamicArraySize--;
@@ -143,57 +98,4 @@ void dynamicArray::remove(int index) {
     decreaseCapacity();
 }
 
-void dynamicArray::removeBack() {
-    dynamicArraySize--;
-    decreaseCapacity();
-}
 
-void dynamicArray::addFront(int element) {
-    increaseCapacity();
-    dynamicArraySize++;
-    for (int i = dynamicArraySize; i > 0; i--) {
-        dynamicArrayPtr[i] = dynamicArrayPtr[i - 1];
-    }
-    dynamicArrayPtr[1] = element;
-}
-
-void dynamicArray::removeFront() {
-    for (int i = 1; i < dynamicArraySize; i++) {
-        dynamicArrayPtr[i] = dynamicArrayPtr[i + 1];
-    }
-    dynamicArraySize--;
-    decreaseCapacity();
-}
-
-void dynamicArray::fillFromArrayCSV(const std::string& filename, int maxElements) {
-    // Otwieramy plik CSV
-    std::ifstream file(filename);
-    if (!file.is_open()) {
-        std::cerr << "Unable to open the file: " << filename << std::endl;
-        return;
-    }
-
-    std::string line;
-    int elementsAdded = 0;
-    while (std::getline(file, line) && elementsAdded < maxElements) {
-        std::istringstream iss(line);
-        std::string value;
-        while (std::getline(iss, value, ',') && elementsAdded < maxElements) {
-            int element;
-            try {
-                // Konwertujemy wartość z ciągu znaków na liczbę całkowitą
-                element = std::stoi(value);
-            }
-            catch (const std::invalid_argument& e) {
-                // Ignorujemy nieprawidłowe wartości
-                continue;
-            }
-            // Dodajemy element do tablicy
-            addBack(element);
-            elementsAdded++;
-        }
-    }
-
-    // Zamykamy plik
-    file.close();
-}
